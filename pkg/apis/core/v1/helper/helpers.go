@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -83,6 +83,21 @@ func HugePageSizeFromResourceName(name v1.ResourceName) (resource.Quantity, erro
 	}
 	pageSize := strings.TrimPrefix(string(name), v1.ResourceHugePagesPrefix)
 	return resource.ParseQuantity(pageSize)
+}
+
+// HugePageUnitSizeFromByteSize returns hugepage size has the format.
+// `size` must be guaranteed to divisible into the largest units that can be expressed.
+// <size><unit-prefix>B (1024 = "1KB", 1048576 = "1MB", etc).
+func HugePageUnitSizeFromByteSize(size int64) string {
+	// Borrowed from opencontainers/runc/libcontainer/cgroups/utils.go
+	var hugePageSizeUnitList = []string{"B", "KB", "MB", "GB", "TB", "PB"}
+	idx := 0
+	len := len(hugePageSizeUnitList) - 1
+	for size%1024 == 0 && idx < len {
+		size /= 1024
+		idx++
+	}
+	return fmt.Sprintf("%d%s", size, hugePageSizeUnitList[idx])
 }
 
 // IsOvercommitAllowed returns true if the resource is in the default
